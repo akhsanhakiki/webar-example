@@ -24,5 +24,5 @@ You can find the marker of this AR in the following folder: assets/targets/
 Credits
 -------
 
-The source of this WebAR example is from the Hiukim Yuen course
+The source of this WebAR example is from the HiuKim Yuen course
  
