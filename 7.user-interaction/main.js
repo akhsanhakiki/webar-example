@@ -1,0 +1,80 @@
+import {loadGLTF, loadAudio} from "../libs/loader.js";
+const THREE = window.MINDAR.IMAGE.THREE;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const start = async() => {
+
+    // initialize MindAR
+    const mindarThree = new window.MINDAR.IMAGE.MindARThree({
+        container: document.body,
+        imageTargetSrc: "../assets/targets/musicband.mind",
+        maxTrack: 2,
+    });
+    const {renderer, scene, camera} = mindarThree;
+
+    // create light
+    const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+    scene.add(light);
+
+    // load 3D object one
+    const raccoon = await loadGLTF("../assets/models/musicband-raccoon/scene.gltf");
+    raccoon.scene.scale.set(0.1, 0.1, 0.1);
+    raccoon.scene.position.set(0, -0.4, 0);
+    raccoon.scene.userData.clickable = true;
+
+    // create anchor
+    const racoonAnchor = mindarThree.addAnchor(0);    
+    racoonAnchor.group.add(raccoon.scene);
+
+    // add audio
+    const listener = new THREE.AudioListener();
+    camera.add(listener);
+
+    const audioClip = await loadAudio("../assets/sounds/musicband-drum-set.mp3");
+    const audio = new THREE.Audio(listener);
+    audio.setBuffer(audioClip);
+
+    // user click
+    document.body.addEventListener("click", (e) => {
+        const mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+        const mouseY = -1 * ((e.clientY / window.innerHeight) * 2 - 1);
+        const mouse = new THREE.Vector2(mouseX, mouseY);
+
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+
+        const intersects = raycaster.intersectObjects(scene.children, true);
+        
+        if (intersects.length > 0){
+            let o = intersects[0].object;
+
+            while (o.parent && !o.userData.clickable){
+                o = o.parent;
+            }
+
+            if (o.userData.clickable){
+                if (o === raccoon.scene){
+                    audio.play();
+                }
+            }
+        }
+    });
+
+    
+    // gltf.animation
+    const mixer = new THREE.AnimationMixer(raccoon.scene);
+    const action = mixer.clipAction(raccoon.animations[0]);
+    action.play();
+    const clock = new THREE.Clock();
+    
+
+    // start AR
+    await mindarThree.start();
+    renderer.setAnimationLoop(() => {
+        const delta = clock.getDelta();
+        mixer.update(delta);
+        renderer.render(scene, camera);
+    });
+    }
+    start();
+});
